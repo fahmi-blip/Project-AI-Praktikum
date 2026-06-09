@@ -20,45 +20,56 @@ class DiagnosisController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama_pasien'   => 'nullable|string|max:100',
-            'gula_darah'    => 'required|numeric|min:70|max:200',
-            'tekanan_darah' => 'required|numeric|min:80|max:180',
-            'bmi'           => 'required|numeric|min:15|max:45',
-            'usia'          => 'required|integer|min:10|max:80',
+            'nama_pasien'      => 'nullable|string|max:100',
+            'usia'             => 'required|integer|min:1|max:100',
+            'berat_badan'      => 'required|numeric|min:20|max:200',
+            'tinggi_badan'     => 'required|numeric|min:100|max:250',
+            'gejala_3p'        => 'required|in:tidak,kadang,sering',
+            'gejala_luka'      => 'required|in:tidak,kadang,sering',
+            'riwayat_keluarga' => 'required|integer|min:0|max:10',
+            'aktivitas_fisik'  => 'required|integer|min:0|max:7',
         ], [
-            'gula_darah.required'    => 'Kadar gula darah wajib diisi.',
-            'gula_darah.min'         => 'Gula darah minimal 70 mg/dL.',
-            'gula_darah.max'         => 'Gula darah maksimal 200 mg/dL.',
-            'tekanan_darah.required' => 'Tekanan darah wajib diisi.',
-            'tekanan_darah.min'      => 'Tekanan darah minimal 80 mmHg.',
-            'tekanan_darah.max'      => 'Tekanan darah maksimal 180 mmHg.',
-            'bmi.required'           => 'BMI wajib diisi.',
-            'bmi.min'                => 'BMI minimal 15 kg/m².',
-            'bmi.max'                => 'BMI maksimal 45 kg/m².',
-            'usia.required'          => 'Usia wajib diisi.',
-            'usia.min'               => 'Usia minimal 10 tahun.',
-            'usia.max'               => 'Usia maksimal 80 tahun.',
+            'usia.required'             => 'Usia wajib diisi.',
+            'usia.min'                  => 'Usia minimal 1 tahun.',
+            'usia.max'                  => 'Usia maksimal 100 tahun.',
+            'berat_badan.required'      => 'Berat badan wajib diisi.',
+            'berat_badan.min'           => 'Berat badan minimal 20 kg.',
+            'berat_badan.max'           => 'Berat badan maksimal 200 kg.',
+            'tinggi_badan.required'     => 'Tinggi badan wajib diisi.',
+            'tinggi_badan.min'          => 'Tinggi badan minimal 100 cm.',
+            'tinggi_badan.max'          => 'Tinggi badan maksimal 250 cm.',
+            'gejala_3p.required'        => 'Gejala 3P wajib dipilih.',
+            'gejala_luka.required'      => 'Gejala luka/kesemutan wajib dipilih.',
+            'riwayat_keluarga.required' => 'Riwayat keluarga wajib diisi.',
+            'aktivitas_fisik.required'  => 'Aktivitas fisik wajib diisi.',
         ]);
 
         // Proses fuzzy Mamdani
         $hasil = $this->fuzzy->diagnosa(
-            (float) $validated['gula_darah'],
-            (float) $validated['tekanan_darah'],
-            (float) $validated['bmi'],
             (int)   $validated['usia'],
+            (float) $validated['berat_badan'],
+            (float) $validated['tinggi_badan'],
+            $validated['gejala_3p'],
+            $validated['gejala_luka'],
+            (int)   $validated['riwayat_keluarga'],
+            (int)   $validated['aktivitas_fisik'],
         );
 
         // Simpan ke database
         $diagnosis = Diagnosis::create([
-            'nama_pasien'   => $validated['nama_pasien'] ?? 'Anonim',
-            'gula_darah'    => $hasil['input']['gula'],
-            'tekanan_darah' => $hasil['input']['tensi'],
-            'bmi'           => $hasil['input']['bmi'],
-            'usia'          => $hasil['input']['usia'],
-            'skor_risiko'   => $hasil['skor'],
-            'klasifikasi'   => $hasil['level'],
-            'rekomendasi'   => $hasil['rekomendasi'],
-            'detail_fuzzy'  => [
+            'nama_pasien'      => $validated['nama_pasien'] ?? 'Anonim',
+            'usia'             => $hasil['input']['usia'],
+            'berat_badan'      => $hasil['input']['berat'],
+            'tinggi_badan'     => $hasil['input']['tinggi'],
+            'bmi'              => $hasil['bmi'],
+            'gejala_3p'        => $hasil['input']['gejala3p'],
+            'gejala_luka'      => $hasil['input']['gejaleLuka'],
+            'riwayat_keluarga' => $hasil['input']['riwayat'],
+            'aktivitas_fisik'  => $hasil['input']['aktivitas'],
+            'skor_risiko'      => $hasil['skor'],
+            'klasifikasi'      => $hasil['level'],
+            'rekomendasi'      => $hasil['rekomendasi'],
+            'detail_fuzzy'     => [
                 'derajat'     => $hasil['derajat'],
                 'agregasi'    => $hasil['agregasi'],
                 'rules_fired' => $hasil['rules_fired'],
@@ -84,10 +95,11 @@ class DiagnosisController extends Controller
             ->paginate(10);
 
         $stats = [
-            'total'  => Diagnosis::count(),
-            'rendah' => Diagnosis::byKlasifikasi('Rendah')->count(),
-            'sedang' => Diagnosis::byKlasifikasi('Sedang')->count(),
-            'tinggi' => Diagnosis::byKlasifikasi('Tinggi')->count(),
+            'total'        => Diagnosis::count(),
+            'rendah'       => Diagnosis::byKlasifikasi('Rendah')->count(),
+            'waspada'      => Diagnosis::byKlasifikasi('Waspada')->count(),
+            'tinggi'       => Diagnosis::byKlasifikasi('Tinggi')->count(),
+            'sangat_tinggi'=> Diagnosis::byKlasifikasi('Sangat Tinggi')->count(),
         ];
 
         return view('diagnosis.index', compact('diagnoses', 'stats', 'filter'));

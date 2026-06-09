@@ -12,9 +12,11 @@
     --accent-light: #E8F0EE;
     --green: #2B5D4F;
     --amber: #8B5A1A;
+    --orange: #8B4010;
     --red: #8B2020;
     --green-light: #F0F7F4;
     --amber-light: #F5EAD8;
+    --orange-light: #F5E8D8;
     --red-light: #F5E0E0;
     --radius: 16px;
     --radius-sm: 10px;
@@ -214,6 +216,37 @@ h1 em {
     margin-bottom: 1.5rem;
 }
 
+.form-section {
+    margin-bottom: 1.75rem;
+    padding-bottom: 1.75rem;
+    border-bottom: 1px solid var(--border2);
+}
+
+.form-section:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.form-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-section-title span {
+    font-size: 11px;
+    font-family: var(--mono);
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
 .field {
     margin-bottom: 1.25rem;
 }
@@ -241,15 +274,29 @@ h1 em {
     color: var(--text3);
 }
 
+.field-desc {
+    font-size: 12px;
+    color: var(--text3);
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
 .field-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    margin: 1rem 0;
+}
+
+.field-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
 }
 
 @media (max-width: 600px) {
-    .field-grid {
+
+    .field-grid,
+    .field-grid-3 {
         grid-template-columns: 1fr;
     }
 }
@@ -260,6 +307,7 @@ h1 em {
     color: var(--text3);
 }
 
+/* ── INPUT ── */
 .input-outer {
     position: relative;
 }
@@ -335,6 +383,147 @@ h1 em {
 .field-error {
     font-size: 12px;
     color: var(--red);
+    margin-top: 4px;
+}
+
+/* ── BMI PREVIEW ── */
+.bmi-preview {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border2);
+    display: none;
+}
+
+.bmi-preview.show {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.bmi-val {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--accent);
+}
+
+.bmi-label {
+    font-size: 12px;
+    color: var(--text2);
+}
+
+/* ── RADIO GROUP ── */
+.radio-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.radio-option {
+    flex: 1;
+    min-width: 100px;
+}
+
+.radio-option input[type="radio"] {
+    display: none;
+}
+
+.radio-option label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all .15s;
+    text-align: center;
+    gap: 4px;
+    background: var(--surface);
+}
+
+.radio-option label:hover {
+    border-color: var(--accent);
+    background: var(--accent-light);
+}
+
+.radio-option input[type="radio"]:checked+label {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.radio-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.radio-text {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.radio-sub {
+    font-size: 11px;
+    color: var(--text3);
+}
+
+.radio-option input[type="radio"]:checked+label .radio-sub {
+    color: var(--accent2);
+}
+
+/* ── RANGE SLIDER ── */
+.range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.range-wrap input[type="range"] {
+    flex: 1;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--bg2);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+.range-wrap input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
+    cursor: pointer;
+    transition: transform .15s;
+}
+
+.range-wrap input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.range-val {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    min-width: 28px;
+    text-align: center;
+    color: var(--text);
+}
+
+.range-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-family: var(--mono);
+    color: var(--text3);
     margin-top: 4px;
 }
 
@@ -486,6 +675,10 @@ h1 em {
     color: var(--amber);
 }
 
+.c-orange {
+    color: var(--orange);
+}
+
 .c-red {
     color: var(--red);
 }
@@ -521,6 +714,12 @@ h1 em {
     border: 1px solid rgba(139, 90, 26, .2);
 }
 
+.badge-orange {
+    background: var(--orange-light);
+    color: var(--orange);
+    border: 1px solid rgba(139, 64, 16, .2);
+}
+
 .badge-red {
     background: var(--red-light);
     color: var(--red);
@@ -548,6 +747,10 @@ h1 em {
 
 .bg-amber {
     background: var(--amber);
+}
+
+.bg-orange {
+    background: var(--orange);
 }
 
 .bg-red {
@@ -579,7 +782,7 @@ h1 em {
 .input-summary {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .input-row {
@@ -598,7 +801,7 @@ h1 em {
 
 .input-row-val {
     font-family: var(--mono);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
 }
 
@@ -608,7 +811,7 @@ h1 em {
     font-weight: 400;
 }
 
-/* ── MEMBERSHIP FUNCTION BARS ── */
+/* ── MF BARS ── */
 .mf-var {
     margin-bottom: 12px;
 }
@@ -635,7 +838,7 @@ h1 em {
     font-size: 11px;
     font-family: var(--mono);
     color: var(--text3);
-    width: 76px;
+    width: 90px;
     flex-shrink: 0;
 }
 
@@ -671,7 +874,7 @@ h1 em {
 .agg-label {
     font-size: 12px;
     font-family: var(--mono);
-    width: 50px;
+    width: 80px;
 }
 
 .agg-track {
@@ -740,6 +943,11 @@ h1 em {
     border-color: rgba(139, 90, 26, .15);
 }
 
+.rek-orange {
+    background: var(--orange-light);
+    border-color: rgba(139, 64, 16, .15);
+}
+
 .rek-red {
     background: var(--red-light);
     border-color: rgba(139, 32, 32, .15);
@@ -781,6 +989,14 @@ h1 em {
     stroke: var(--amber);
 }
 
+.rek-icon-orange {
+    background: rgba(139, 64, 16, .12);
+}
+
+.rek-icon-orange svg {
+    stroke: var(--orange);
+}
+
 .rek-icon-red {
     background: rgba(139, 32, 32, .12);
 }
@@ -801,6 +1017,10 @@ h1 em {
 
 .rek-amber .rek-title {
     color: var(--amber);
+}
+
+.rek-orange .rek-title {
+    color: var(--orange);
 }
 
 .rek-red .rek-title {

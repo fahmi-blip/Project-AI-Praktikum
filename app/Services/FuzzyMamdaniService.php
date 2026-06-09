@@ -24,76 +24,129 @@ class FuzzyMamdaniService
     }
 
     // ─────────────────────────────────────────────
+    // MAPPING INPUT KATEGORI → NILAI CRISP
+    // ─────────────────────────────────────────────
+
+    private function mapGejala(string $val): float
+    {
+        return match($val) {
+            'tidak'  => 1.0,  // tengah himpunan Ringan (0-3)
+            'kadang' => 5.0,  // tengah himpunan Sedang (4-6)
+            'sering' => 8.5,  // tengah himpunan Berat  (7-10)
+            default  => 0.0,
+        };
+    }
+
+    // ─────────────────────────────────────────────
+    // HITUNG BMI OTOMATIS
+    // ─────────────────────────────────────────────
+
+    public function hitungBMI(float $berat, float $tinggi): float
+    {
+        $tinggiMeter = $tinggi / 100;
+        return round($berat / ($tinggiMeter * $tinggiMeter), 1);
+    }
+
+    // ─────────────────────────────────────────────
     // FUZZIFIKASI
     // ─────────────────────────────────────────────
 
-    private function fuzzify(float $gula, float $tensi, float $bmi, float $usia): array
-    {
+    private function fuzzify(
+        float $usia,
+        float $bmi,
+        float $gejala3p,
+        float $gejaleLuka,
+        float $riwayat,
+        float $aktivitas
+    ): array {
         return [
-            'gula' => [
-                'normal'   => $this->trapMF($gula,  70,  70,  90, 110),
-                'pra'      => $this->triMF ($gula,  95, 118, 140),
-                'diabetes' => $this->trapMF($gula, 126, 155, 200, 200),
-            ],
-            'tensi' => [
-                'normal' => $this->trapMF($tensi,  80,  80, 110, 125),
-                'sedang' => $this->triMF ($tensi, 115, 135, 155),
-                'tinggi' => $this->trapMF($tensi, 140, 160, 180, 180),
+            'usia' => [
+                'muda'     => $this->trapMF($usia,  1,   1,  25,  35),
+                'parobaya' => $this->triMF ($usia, 28,  42,  56),
+                'lansia'   => $this->trapMF($usia, 50,  60, 100, 100),
             ],
             'bmi' => [
-                'kurus'  => $this->trapMF($bmi,  15,  15,  17,  19),
-                'normal' => $this->trapMF($bmi,  18,  20,  23,  25),
-                'lebih'  => $this->triMF ($bmi,  24,  27,  31),
-                'obese'  => $this->trapMF($bmi,  29,  33,  45,  45),
+                'kurus'     => $this->trapMF($bmi, 10,  10,  17,  18.5),
+                'normal'    => $this->triMF ($bmi, 17, 21.5,  25),
+                'overweight'=> $this->triMF ($bmi, 24,  27,   30),
+                'obesitas'  => $this->trapMF($bmi, 29,  32,  50,  50),
             ],
-            'usia' => [
-                'muda'   => $this->trapMF($usia,  10,  10,  25,  35),
-                'dewasa' => $this->triMF ($usia,  28,  42,  56),
-                'lansia' => $this->trapMF($usia,  50,  62,  80,  80),
+            'gejala3p' => [
+                'ringan' => $this->trapMF($gejala3p,  0,  0,  2,  4),
+                'sedang' => $this->triMF ($gejala3p,  3,  5,  7),
+                'berat'  => $this->trapMF($gejala3p,  6,  8, 10, 10),
+            ],
+            'gejaleLuka' => [
+                'tidak_ada'    => $this->trapMF($gejaleLuka, 0, 0, 1, 3),
+                'kadang_kadang'=> $this->triMF ($gejaleLuka, 2, 5, 8),
+                'sering'       => $this->trapMF($gejaleLuka, 6, 8, 10, 10),
+            ],
+            'riwayat' => [
+                'aman'        => $this->trapMF($riwayat, 0, 0, 2,  4),
+                'rentan'      => $this->triMF ($riwayat, 3, 5,  7),
+                'risiko_tinggi'=> $this->trapMF($riwayat, 6, 8, 10, 10),
+            ],
+            'aktivitas' => [
+                'pasif'  => $this->trapMF($aktivitas, 0, 0, 1, 2),
+                'sedang' => $this->triMF ($aktivitas, 1, 3, 5),
+                'aktif'  => $this->trapMF($aktivitas, 4, 5, 7, 7),
             ],
         ];
     }
 
     // ─────────────────────────────────────────────
-    // INFERENSI (22 RULES) + AGREGASI MAX
+    // INFERENSI + AGREGASI MAX
     // ─────────────────────────────────────────────
 
     private function inferensi(array $mf): array
     {
-        $g = $mf['gula'];
-        $t = $mf['tensi'];
-        $b = $mf['bmi'];
-        $u = $mf['usia'];
+        $u  = $mf['usia'];
+        $b  = $mf['bmi'];
+        $g  = $mf['gejala3p'];
+        $l  = $mf['gejaleLuka'];
+        $r  = $mf['riwayat'];
+        $a  = $mf['aktivitas'];
 
         $rules = [
-            // RENDAH
-            [min($g['normal'], $t['normal'], $b['normal']), 'rendah'],
-            [min($g['normal'], $t['normal'], $b['kurus']),  'rendah'],
-            [min($g['normal'], $t['normal'], $u['muda']),   'rendah'],
-            [min($g['normal'], $b['normal'], $u['muda']),   'rendah'],
-            [min($g['normal'], $b['kurus']),                'rendah'],
-            [min($g['normal'], $t['normal']),               'rendah'],
-            // SEDANG
-            [min($g['pra'], $t['normal'], $b['normal']),    'sedang'],
-            [min($g['pra'], $b['lebih']),                   'sedang'],
-            [min($g['normal'], $t['sedang'], $b['lebih']),  'sedang'],
-            [min($g['normal'], $t['sedang'], $u['dewasa']), 'sedang'],
-            [min($g['pra'], $u['dewasa']),                  'sedang'],
-            [min($g['normal'], $b['obese'], $u['muda']),    'sedang'],
-            [min($g['pra'], $t['sedang']),                  'sedang'],
-            [min($g['normal'], $t['tinggi'], $b['normal']), 'sedang'],
-            // TINGGI
-            [$g['diabetes'],                                'tinggi'],
-            [min($g['pra'], $b['obese']),                   'tinggi'],
-            [min($g['pra'], $t['tinggi']),                  'tinggi'],
-            [min($g['pra'], $u['lansia']),                  'tinggi'],
-            [min($g['normal'], $t['tinggi'], $b['obese']),  'tinggi'],
-            [min($g['normal'], $b['obese'], $u['lansia']),  'tinggi'],
-            [min($g['pra'], $b['obese'], $u['lansia']),     'tinggi'],
-            [min($g['pra'], $t['tinggi'], $u['lansia']),    'tinggi'],
+            // ── RENDAH ──────────────────────────────────────
+            [min($u['muda'],     $b['normal'],     $a['aktif'],   $r['aman']),          'rendah'],
+            [min($u['muda'],     $b['kurus'],      $g['ringan'],  $r['aman']),          'rendah'],
+            [min($u['muda'],     $b['normal'],     $g['ringan']),                       'rendah'],
+            [min($a['aktif'],    $b['normal'],     $r['aman'],    $g['ringan']),        'rendah'],
+            [min($u['muda'],     $a['aktif'],      $g['ringan'],  $l['tidak_ada']),     'rendah'],
+            [min($b['normal'],   $r['aman'],       $l['tidak_ada'], $g['ringan']),      'rendah'],
+
+            // ── WASPADA ─────────────────────────────────────
+            [min($u['parobaya'], $b['normal'],     $g['ringan'],  $r['aman']),          'waspada'],
+            [min($u['muda'],     $b['overweight'], $g['ringan']),                       'waspada'],
+            [min($u['parobaya'], $b['overweight'], $a['sedang']),                       'waspada'],
+            [min($b['normal'],   $r['rentan'],     $g['sedang']),                       'waspada'],
+            [min($u['muda'],     $r['rentan'],     $g['sedang'],  $a['sedang']),        'waspada'],
+            [min($b['overweight'],$r['aman'],      $g['sedang'],  $a['sedang']),        'waspada'],
+            [min($u['parobaya'], $b['normal'],     $r['rentan'],  $l['kadang_kadang']), 'waspada'],
+            [min($a['pasif'],    $b['normal'],     $g['ringan'],  $r['aman']),          'waspada'],
+            [min($u['muda'],     $b['obesitas'],   $g['ringan'],  $r['aman']),          'waspada'],
+
+            // ── TINGGI ──────────────────────────────────────
+            [min($u['lansia'],   $b['normal'],     $r['rentan'],  $g['sedang']),        'tinggi'],
+            [min($u['parobaya'], $b['obesitas'],   $g['sedang']),                       'tinggi'],
+            [min($b['overweight'],$r['risiko_tinggi'], $g['sedang']),                   'tinggi'],
+            [min($u['lansia'],   $b['overweight'], $a['pasif'],   $r['rentan']),        'tinggi'],
+            [min($g['berat'],    $b['overweight'], $r['rentan']),                       'tinggi'],
+            [min($u['parobaya'], $r['risiko_tinggi'], $g['berat'], $a['pasif']),        'tinggi'],
+            [min($l['sering'],   $b['overweight'], $r['rentan'],  $u['parobaya']),      'tinggi'],
+            [min($u['lansia'],   $b['obesitas'],   $a['pasif']),                        'tinggi'],
+
+            // ── SANGAT TINGGI ────────────────────────────────
+            [min($u['lansia'],   $b['obesitas'],   $g['berat'],   $r['risiko_tinggi']), 'sangat_tinggi'],
+            [min($g['berat'],    $r['risiko_tinggi'], $b['obesitas']),                  'sangat_tinggi'],
+            [min($u['lansia'],   $g['berat'],      $l['sering'],  $r['risiko_tinggi']), 'sangat_tinggi'],
+            [min($b['obesitas'], $g['berat'],      $a['pasif'],   $r['risiko_tinggi']), 'sangat_tinggi'],
+            [min($u['lansia'],   $r['risiko_tinggi'], $a['pasif'], $l['sering']),       'sangat_tinggi'],
+            [min($g['berat'],    $l['sering'],     $b['obesitas'], $a['pasif']),        'sangat_tinggi'],
         ];
 
-        $agg   = ['rendah' => 0.0, 'sedang' => 0.0, 'tinggi' => 0.0];
+        $agg   = ['rendah' => 0.0, 'waspada' => 0.0, 'tinggi' => 0.0, 'sangat_tinggi' => 0.0];
         $fired = [];
 
         foreach ($rules as [$w, $out]) {
@@ -116,11 +169,12 @@ class FuzzyMamdaniService
         $den = 0.0;
 
         for ($i = 0; $i <= 200; $i++) {
-            $x  = $i / 2.0;
+            $x  = $i / 2.0; // 0..100 step 0.5
             $mu = max(
-                min($agg['rendah'], $this->trapMF($x,  0,  0, 20, 35)),
-                min($agg['sedang'], $this->triMF ($x, 25, 50, 65)),
-                min($agg['tinggi'], $this->trapMF($x, 55, 75, 100, 100))
+                min($agg['rendah'],        $this->trapMF($x,  0,  0, 15, 30)),
+                min($agg['waspada'],       $this->triMF ($x, 25, 45, 60)),
+                min($agg['tinggi'],        $this->triMF ($x, 55, 70, 85)),
+                min($agg['sangat_tinggi'], $this->trapMF($x, 80, 90, 100, 100))
             );
             $num += $x * $mu;
             $den += $mu;
@@ -135,23 +189,29 @@ class FuzzyMamdaniService
 
     private function klasifikasi(float $skor): array
     {
-        if ($skor < 35) {
+        if ($skor < 30) {
             return [
                 'level'       => 'Rendah',
                 'warna'       => 'green',
-                'rekomendasi' => 'Kondisi Anda saat ini tergolong baik. Pertahankan pola makan sehat, olahraga rutin minimal 30 menit per hari, dan lakukan pemeriksaan kesehatan setahun sekali.',
+                'rekomendasi' => 'Profil kesehatan Anda saat ini tergolong baik. Pertahankan gaya hidup sehat dengan olahraga rutin minimal 30 menit per hari, konsumsi makanan bergizi seimbang, dan batasi makanan manis serta berlemak. Lakukan pemeriksaan kesehatan rutin setahun sekali.',
             ];
-        } elseif ($skor < 65) {
+        } elseif ($skor < 60) {
             return [
-                'level'       => 'Sedang',
+                'level'       => 'Waspada',
                 'warna'       => 'amber',
-                'rekomendasi' => 'Beberapa indikator Anda berada di zona pra-diabetes. Kurangi konsumsi gula dan karbohidrat olahan, tingkatkan aktivitas fisik, dan konsultasikan ke dokter setiap 3–6 bulan.',
+                'rekomendasi' => 'Beberapa faktor risiko diabetes terdeteksi pada profil Anda. Mulailah meningkatkan aktivitas fisik, kurangi konsumsi gula dan karbohidrat olahan, jaga berat badan ideal, dan pertimbangkan untuk memeriksakan kadar gula darah ke dokter atau puskesmas terdekat.',
+            ];
+        } elseif ($skor < 85) {
+            return [
+                'level'       => 'Tinggi',
+                'warna'       => 'orange',
+                'rekomendasi' => 'Profil risiko Anda menunjukkan kemungkinan diabetes yang cukup signifikan. Sangat disarankan untuk segera memeriksakan diri ke dokter untuk tes gula darah dan HbA1c. Ubah pola makan secara serius, tingkatkan aktivitas fisik, dan lakukan pemantauan kesehatan secara rutin.',
             ];
         } else {
             return [
-                'level'       => 'Tinggi',
+                'level'       => 'Sangat Tinggi',
                 'warna'       => 'red',
-                'rekomendasi' => 'Risiko diabetes Anda tergolong tinggi. Segera konsultasikan ke dokter untuk pemeriksaan HbA1c dan penanganan lebih lanjut.',
+                'rekomendasi' => 'Profil risiko Anda sangat mengkhawatirkan. Segera konsultasikan ke dokter untuk pemeriksaan menyeluruh termasuk tes gula darah puasa, HbA1c, dan evaluasi komplikasi. Jangan tunda penanganan karena diabetes yang tidak tertangani dapat menyebabkan komplikasi serius.',
             ];
         }
     }
@@ -160,36 +220,53 @@ class FuzzyMamdaniService
     // METODE UTAMA — dipanggil dari Controller
     // ─────────────────────────────────────────────
 
-    public function diagnosa(float $gula, float $tensi, float $bmi, float $usia): array
-    {
-        $gula  = max(70,  min(200, $gula));
-        $tensi = max(80,  min(180, $tensi));
-        $bmi   = max(15,  min(45,  $bmi));
-        $usia  = max(10,  min(80,  $usia));
+    public function diagnosa(
+        int    $usia,
+        float  $berat,
+        float  $tinggi,
+        string $gejala3p,
+        string $gejaleLuka,
+        int    $riwayat,
+        int    $aktivitas
+    ): array {
+        $bmi      = $this->hitungBMI($berat, $tinggi);
+        $g3p      = $this->mapGejala($gejala3p);
+        $gLuka    = $this->mapGejala($gejaleLuka);
 
-        $mf          = $this->fuzzify($gula, $tensi, $bmi, $usia);
+        $usia     = max(1,   min(100, $usia));
+        $riwayat  = max(0,   min(10,  $riwayat));
+        $aktivitas= max(0,   min(7,   $aktivitas));
+
+        $mf          = $this->fuzzify($usia, $bmi, $g3p, $gLuka, $riwayat, $aktivitas);
         $inferResult = $this->inferensi($mf);
         $skor        = $this->defuzzify($inferResult['agg']);
         $klas        = $this->klasifikasi($skor);
 
         return [
             'skor'        => $skor,
+            'bmi'         => $bmi,
             'level'       => $klas['level'],
             'warna'       => $klas['warna'],
             'rekomendasi' => $klas['rekomendasi'],
             'agregasi'    => $inferResult['agg'],
             'rules_fired' => $inferResult['fired'],
             'derajat'     => [
-                'gula'  => $mf['gula'],
-                'tensi' => $mf['tensi'],
-                'bmi'   => $mf['bmi'],
-                'usia'  => $mf['usia'],
+                'usia'       => $mf['usia'],
+                'bmi'        => $mf['bmi'],
+                'gejala3p'   => $mf['gejala3p'],
+                'gejaleLuka' => $mf['gejaleLuka'],
+                'riwayat'    => $mf['riwayat'],
+                'aktivitas'  => $mf['aktivitas'],
             ],
             'input' => [
-                'gula'  => $gula,
-                'tensi' => $tensi,
-                'bmi'   => $bmi,
-                'usia'  => $usia,
+                'usia'       => $usia,
+                'berat'      => $berat,
+                'tinggi'     => $tinggi,
+                'bmi'        => $bmi,
+                'gejala3p'   => $gejala3p,
+                'gejaleLuka' => $gejaleLuka,
+                'riwayat'    => $riwayat,
+                'aktivitas'  => $aktivitas,
             ],
         ];
     }
