@@ -19,16 +19,12 @@
             </div>
             <span class="nav-title">DiagnoCare</span>
         </a>
-        <div class="nav-links">
+        {{-- <div class="nav-links">
             <a href="{{ route('diagnosis.create') }}"
                class="nav-link {{ request()->routeIs('diagnosis.create') ? 'active' : '' }}">
                 Diagnosa
             </a>
-            <a href="{{ route('diagnosis.index') }}"
-               class="nav-link {{ request()->routeIs('diagnosis.index') ? 'active' : '' }}">
-                Riwayat
-            </a>
-        </div>
+        </div> --}}
         <span class="nav-badge">Fuzzy Mamdani</span>
     </div>
 </nav>

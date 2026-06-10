@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Diagnosis;
 use App\Services\FuzzyMamdaniService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class DiagnosisController extends Controller
 {
@@ -43,6 +45,25 @@ class DiagnosisController extends Controller
             'riwayat_keluarga.required' => 'Riwayat keluarga wajib diisi.',
             'aktivitas_fisik.required'  => 'Aktivitas fisik wajib diisi.',
         ]);
+        $namaInput = $validated['nama_pasien'] ?? null;
+    
+        if (empty($namaInput)) {
+            // Jika kosong, buat ID acak (Misal: Anonim-X8M2)
+            $namaPasien = 'Anonim-' . strtoupper(Str::random(4));
+        } else {
+            // Jika diisi, lakukan masking huruf tengah
+            $kata = explode(' ', $namaInput);
+            $namaMasked = [];
+            foreach ($kata as $k) {
+                $len = strlen($k);
+                if ($len > 2) {
+                    $namaMasked[] = substr($k, 0, 1) . str_repeat('*', $len - 2) . substr($k, -1);
+                } else {
+                    $namaMasked[] = $k . '***';
+                }
+            }
+            $namaPasien = implode(' ', $namaMasked);
+        }
 
         // Proses fuzzy Mamdani
         $hasil = $this->fuzzy->diagnosa(
@@ -57,7 +78,7 @@ class DiagnosisController extends Controller
 
         // Simpan ke database
         $diagnosis = Diagnosis::create([
-            'nama_pasien'      => $validated['nama_pasien'] ?? 'Anonim',
+            'nama_pasien'      => $validated['nama_pasien'],
             'usia'             => $hasil['input']['usia'],
             'berat_badan'      => $hasil['input']['berat'],
             'tinggi_badan'     => $hasil['input']['tinggi'],
@@ -84,32 +105,29 @@ class DiagnosisController extends Controller
     {
         return view('diagnosis.show', compact('diagnosis'));
     }
-
-    // ── GET /riwayat ── Daftar riwayat diagnosa
-    public function index(Request $request)
+    public function downloadPdf(Diagnosis $diagnosis)
     {
-        $filter = $request->query('filter');
+        $detailFuzzy = $diagnosis->detail_fuzzy;
 
-        $diagnoses = Diagnosis::when($filter, fn($q) => $q->byKlasifikasi($filter))
-            ->latest()
-            ->paginate(10);
+        // Ambil warna hex berdasarkan tingkat klasifikasi untuk mempercantik PDF
+        $warnaHex = match($diagnosis->klasifikasi) {
+            'Rendah' => '#10b981',        // Hijau
+            'Waspada' => '#f59e0b',       // Amber
+            'Tinggi' => '#f97316',        // Orange
+            'Sangat Tinggi' => '#ef4444', // Merah
+            default => '#6b7280'
+        };
 
-        $stats = [
-            'total'        => Diagnosis::count(),
-            'rendah'       => Diagnosis::byKlasifikasi('Rendah')->count(),
-            'waspada'      => Diagnosis::byKlasifikasi('Waspada')->count(),
-            'tinggi'       => Diagnosis::byKlasifikasi('Tinggi')->count(),
-            'sangat_tinggi'=> Diagnosis::byKlasifikasi('Sangat Tinggi')->count(),
-        ];
+        // Load view khusus PDF dan oper datanya
+        $pdf = Pdf::loadView('diagnosis.pdf', compact('diagnosis', 'detailFuzzy', 'warnaHex'));
+        
+        // Atur ukuran kertas ke A4 dan orientasi Portrait
+        $pdf->setPaper('a4', 'portrait');
 
-        return view('diagnosis.index', compact('diagnoses', 'stats', 'filter'));
-    }
+        // Buat nama file PDF otomatis dan aman (slug) berdasarkan nama pasien dan ID
+        $filename = 'Hasil_Skrining_' . Str::slug($diagnosis->nama_pasien) . '_' . $diagnosis->id . '.pdf';
 
-    // ── DELETE /diagnosis/{id} ── Hapus riwayat
-    public function destroy(Diagnosis $diagnosis)
-    {
-        $diagnosis->delete();
-        return redirect()->route('diagnosis.index')
-            ->with('success', 'Data diagnosa berhasil dihapus.');
+        // Download langsung ke perangkat pengguna
+        return $pdf->download($filename);
     }
 }

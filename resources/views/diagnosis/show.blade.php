@@ -202,8 +202,8 @@
     </div>
 
     <div style="text-align:center;margin-top:1.5rem">
-        <a href="{{ route('diagnosis.index') }}" class="btn-secondary">
-            Lihat semua riwayat →
+        <a href="{{ route('diagnosis.download', $diagnosis->id) }}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-file-pdf icon"></i> Unduh Hasil Pemeriksaan (PDF)
         </a>
     </div>
 

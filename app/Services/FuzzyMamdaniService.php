@@ -5,22 +5,26 @@ namespace App\Services;
 class FuzzyMamdaniService
 {
     // ─────────────────────────────────────────────
-    // FUNGSI KEANGGOTAAN
+    // FUNGSI KEANGGOTAAN (SUDAH DIPERBAIKI)
     // ─────────────────────────────────────────────
 
     private function trapMF(float $x, float $a, float $b, float $c, float $d): float
     {
-        if ($x <= $a || $x >= $d) return 0.0;
-        if ($x >= $b && $x <= $c) return 1.0;
-        if ($x < $b) return ($x - $a) / ($b - $a);
-        return ($d - $x) / ($d - $c);
+        // Menggunakan formula universal max/min untuk mencegah error di batas angka (0 atau 10)
+        $term1 = ($a == $b) ? ($x >= $a ? 1.0 : 0.0) : ($x - $a) / ($b - $a);
+        $term2 = 1.0;
+        $term3 = ($c == $d) ? ($x <= $d ? 1.0 : 0.0) : ($d - $x) / ($d - $c);
+
+        return max(0.0, min($term1, $term2, $term3));
     }
 
     private function triMF(float $x, float $a, float $b, float $c): float
     {
-        if ($x <= $a || $x >= $c) return 0.0;
-        if ($x <= $b) return ($x - $a) / ($b - $a);
-        return ($c - $x) / ($c - $b);
+        // Menggunakan formula universal max/min untuk kurva segitiga
+        $term1 = ($a == $b) ? ($x >= $a ? 1.0 : 0.0) : ($x - $a) / ($b - $a);
+        $term2 = ($b == $c) ? ($x <= $c ? 1.0 : 0.0) : ($c - $x) / ($c - $b);
+
+        return max(0.0, min($term1, $term2));
     }
 
     // ─────────────────────────────────────────────
@@ -108,7 +112,7 @@ class FuzzyMamdaniService
         $a  = $mf['aktivitas'];
 
         $rules = [
-            // ── RENDAH ──────────────────────────────────────
+            // ── ATURAN SPESIFIK (BAWAAN ANDA) ──
             [min($u['muda'],     $b['normal'],     $a['aktif'],   $r['aman']),          'rendah'],
             [min($u['muda'],     $b['kurus'],      $g['ringan'],  $r['aman']),          'rendah'],
             [min($u['muda'],     $b['normal'],     $g['ringan']),                       'rendah'],
@@ -116,7 +120,6 @@ class FuzzyMamdaniService
             [min($u['muda'],     $a['aktif'],      $g['ringan'],  $l['tidak_ada']),     'rendah'],
             [min($b['normal'],   $r['aman'],       $l['tidak_ada'], $g['ringan']),      'rendah'],
 
-            // ── WASPADA ─────────────────────────────────────
             [min($u['parobaya'], $b['normal'],     $g['ringan'],  $r['aman']),          'waspada'],
             [min($u['muda'],     $b['overweight'], $g['ringan']),                       'waspada'],
             [min($u['parobaya'], $b['overweight'], $a['sedang']),                       'waspada'],
@@ -127,7 +130,6 @@ class FuzzyMamdaniService
             [min($a['pasif'],    $b['normal'],     $g['ringan'],  $r['aman']),          'waspada'],
             [min($u['muda'],     $b['obesitas'],   $g['ringan'],  $r['aman']),          'waspada'],
 
-            // ── TINGGI ──────────────────────────────────────
             [min($u['lansia'],   $b['normal'],     $r['rentan'],  $g['sedang']),        'tinggi'],
             [min($u['parobaya'], $b['obesitas'],   $g['sedang']),                       'tinggi'],
             [min($b['overweight'],$r['risiko_tinggi'], $g['sedang']),                   'tinggi'],
@@ -137,13 +139,24 @@ class FuzzyMamdaniService
             [min($l['sering'],   $b['overweight'], $r['rentan'],  $u['parobaya']),      'tinggi'],
             [min($u['lansia'],   $b['obesitas'],   $a['pasif']),                        'tinggi'],
 
-            // ── SANGAT TINGGI ────────────────────────────────
             [min($u['lansia'],   $b['obesitas'],   $g['berat'],   $r['risiko_tinggi']), 'sangat_tinggi'],
             [min($g['berat'],    $r['risiko_tinggi'], $b['obesitas']),                  'sangat_tinggi'],
             [min($u['lansia'],   $g['berat'],      $l['sering'],  $r['risiko_tinggi']), 'sangat_tinggi'],
             [min($b['obesitas'], $g['berat'],      $a['pasif'],   $r['risiko_tinggi']), 'sangat_tinggi'],
             [min($u['lansia'],   $r['risiko_tinggi'], $a['pasif'], $l['sering']),       'sangat_tinggi'],
             [min($g['berat'],    $l['sering'],     $b['obesitas'], $a['pasif']),        'sangat_tinggi'],
+            
+            // ── ATURAN TAMBAHAN UMUM (Mencegah Output 0 jika kombinasi aneh dimasukkan) ──
+            [min($g['berat'], $b['obesitas']), 'sangat_tinggi'],
+            [min($g['berat'], $r['risiko_tinggi']), 'sangat_tinggi'],
+            [min($g['sedang'], $b['obesitas']), 'tinggi'],
+            [min($g['sedang'], $r['risiko_tinggi']), 'tinggi'],
+            [min($r['risiko_tinggi'], $b['obesitas']), 'tinggi'],
+            [min($g['sedang'], $b['normal']), 'waspada'],
+            [min($g['sedang'], $b['overweight']), 'waspada'],
+            [min($g['ringan'], $r['risiko_tinggi']), 'waspada'],
+            [min($g['ringan'], $b['normal']), 'rendah'],
+            [min($g['ringan'], $b['kurus']), 'rendah'],
         ];
 
         $agg   = ['rendah' => 0.0, 'waspada' => 0.0, 'tinggi' => 0.0, 'sangat_tinggi' => 0.0];
