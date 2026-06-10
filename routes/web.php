@@ -11,5 +11,4 @@ Route::post('/diagnosis',            [DiagnosisController::class, 'store'])->nam
 Route::get('/diagnosis/{diagnosis}', [DiagnosisController::class, 'show'])->name('diagnosis.show');
 Route::delete('/diagnosis/{diagnosis}', [DiagnosisController::class, 'destroy'])->name('diagnosis.destroy');
 
-// Riwayat
-Route::get('/riwayat', [DiagnosisController::class, 'index'])->name('diagnosis.index');
+Route::get('/diagnosis/{diagnosis}/download', [DiagnosisController::class, 'downloadPdf'])->name('diagnosis.download');

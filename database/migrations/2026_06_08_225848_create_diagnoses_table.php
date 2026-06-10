@@ -11,26 +11,23 @@ return new class extends Migration
         Schema::create('diagnoses', function (Blueprint $table) {
             $table->id();
             $table->string('nama_pasien')->default('Anonim');
-
-            // Faktor Fisik Dasar
             $table->integer('usia');
             $table->float('berat_badan');
             $table->float('tinggi_badan');
-            $table->float('bmi'); // dihitung otomatis
-
-            // Faktor Gejala
-            $table->enum('gejala_3p',   ['tidak', 'kadang', 'sering']); // haus, lapar, bak malam
-            $table->enum('gejala_luka', ['tidak', 'kadang', 'sering']); // luka/kesemutan
-
-            // Faktor Riwayat & Gaya Hidup
-            $table->integer('riwayat_keluarga'); // 0-10
-            $table->integer('aktivitas_fisik');  // 0-7 hari/minggu
-
-            // Output
+            $table->float('bmi');
+            
+            // Kolom gejala dan faktor risiko
+            $table->string('gejala_3p');
+            $table->string('gejala_luka');
+            $table->integer('riwayat_keluarga');
+            $table->integer('aktivitas_fisik');
+            
+            // Kolom hasil
             $table->float('skor_risiko');
-            $table->enum('klasifikasi', ['Rendah', 'Waspada', 'Tinggi', 'Sangat Tinggi']);
+            $table->string('klasifikasi');
             $table->text('rekomendasi');
             $table->json('detail_fuzzy')->nullable();
+            
             $table->timestamps();
         });
     }
