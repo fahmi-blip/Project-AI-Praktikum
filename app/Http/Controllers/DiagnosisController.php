@@ -57,7 +57,7 @@ class DiagnosisController extends Controller
 
         // Simpan ke database
         $diagnosis = Diagnosis::create([
-            'nama_pasien'      => $validated['nama_pasien'] ?? 'Anonim',
+            'nama_pasien' => !empty($validated['nama_pasien']) ? $validated['nama_pasien'] : 'Anonim',
             'usia'             => $hasil['input']['usia'],
             'berat_badan'      => $hasil['input']['berat'],
             'tinggi_badan'     => $hasil['input']['tinggi'],
@@ -99,7 +99,7 @@ class DiagnosisController extends Controller
             'rendah'       => Diagnosis::byKlasifikasi('Rendah')->count(),
             'waspada'      => Diagnosis::byKlasifikasi('Waspada')->count(),
             'tinggi'       => Diagnosis::byKlasifikasi('Tinggi')->count(),
-            'sangat_tinggi'=> Diagnosis::byKlasifikasi('Sangat Tinggi')->count(),
+            'sangat_tinggi' => Diagnosis::byKlasifikasi('Sangat Tinggi')->count(),
         ];
 
         return view('diagnosis.index', compact('diagnoses', 'stats', 'filter'));
