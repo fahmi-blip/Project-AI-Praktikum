@@ -46,7 +46,7 @@ class DiagnosisController extends Controller
             'aktivitas_fisik.required'  => 'Aktivitas fisik wajib diisi.',
         ]);
         $namaInput = $validated['nama_pasien'] ?? null;
-    
+
         if (empty($namaInput)) {
             // Jika kosong, buat ID acak (Misal: Anonim-X8M2)
             $namaPasien = 'Anonim-' . strtoupper(Str::random(4));
@@ -110,7 +110,7 @@ class DiagnosisController extends Controller
         $detailFuzzy = $diagnosis->detail_fuzzy;
 
         // Ambil warna hex berdasarkan tingkat klasifikasi untuk mempercantik PDF
-        $warnaHex = match($diagnosis->klasifikasi) {
+        $warnaHex = match ($diagnosis->klasifikasi) {
             'Rendah' => '#10b981',        // Hijau
             'Waspada' => '#f59e0b',       // Amber
             'Tinggi' => '#f97316',        // Orange
@@ -126,7 +126,10 @@ class DiagnosisController extends Controller
             'sangat_tinggi' => Diagnosis::byKlasifikasi('Sangat Tinggi')->count(),
         ];
         // Load view khusus PDF dan oper datanya
-        $pdf = Pdf::loadView('diagnosis.pdf', compact('diagnosis', 'detailFuzzy', 'warnaHex'));
+        $pdf = Pdf::setOptions([
+            'public_path' => base_path('public'),
+            'chroot' => base_path(),
+        ])->loadView('diagnosis.pdf', compact('diagnosis', 'detailFuzzy', 'warnaHex'));
         
         // Atur ukuran kertas ke A4 dan orientasi Portrait
         $pdf->setPaper('a4', 'portrait');
