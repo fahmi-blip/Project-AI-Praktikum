@@ -33,7 +33,7 @@ class FuzzyMamdaniService
 
     private function mapGejala(string $val): float
     {
-        return match($val) {
+        return match ($val) {
             'tidak'  => 1.0,  // tengah himpunan Ringan (0-3)
             'kadang' => 5.0,  // tengah himpunan Sedang (4-6)
             'sering' => 8.5,  // tengah himpunan Berat  (7-10)
@@ -66,33 +66,33 @@ class FuzzyMamdaniService
         return [
             'usia' => [
                 'muda'     => $this->trapMF($usia,  1,   1,  25,  35),
-                'parobaya' => $this->triMF ($usia, 28,  42,  56),
+                'parobaya' => $this->triMF($usia, 28,  42,  56),
                 'lansia'   => $this->trapMF($usia, 50,  60, 100, 100),
             ],
             'bmi' => [
                 'kurus'     => $this->trapMF($bmi, 10,  10,  17,  18.5),
-                'normal'    => $this->triMF ($bmi, 17, 21.5,  25),
-                'overweight'=> $this->triMF ($bmi, 24,  27,   30),
+                'normal'    => $this->triMF($bmi, 17, 21.5,  25),
+                'overweight' => $this->triMF($bmi, 24,  27,   30),
                 'obesitas'  => $this->trapMF($bmi, 29,  32,  50,  50),
             ],
             'gejala3p' => [
                 'ringan' => $this->trapMF($gejala3p,  0,  0,  2,  4),
-                'sedang' => $this->triMF ($gejala3p,  3,  5,  7),
+                'sedang' => $this->triMF($gejala3p,  3,  5,  7),
                 'berat'  => $this->trapMF($gejala3p,  6,  8, 10, 10),
             ],
             'gejaleLuka' => [
                 'tidak_ada'    => $this->trapMF($gejaleLuka, 0, 0, 1, 3),
-                'kadang_kadang'=> $this->triMF ($gejaleLuka, 2, 5, 8),
+                'kadang_kadang' => $this->triMF($gejaleLuka, 2, 5, 8),
                 'sering'       => $this->trapMF($gejaleLuka, 6, 8, 10, 10),
             ],
             'riwayat' => [
                 'aman'        => $this->trapMF($riwayat, 0, 0, 2,  4),
-                'rentan'      => $this->triMF ($riwayat, 3, 5,  7),
-                'risiko_tinggi'=> $this->trapMF($riwayat, 6, 8, 10, 10),
+                'rentan'      => $this->triMF($riwayat, 3, 5,  7),
+                'risiko_tinggi' => $this->trapMF($riwayat, 6, 8, 10, 10),
             ],
             'aktivitas' => [
                 'pasif'  => $this->trapMF($aktivitas, 0, 0, 1, 2),
-                'sedang' => $this->triMF ($aktivitas, 1, 3, 5),
+                'sedang' => $this->triMF($aktivitas, 1, 3, 5),
                 'aktif'  => $this->trapMF($aktivitas, 4, 5, 7, 7),
             ],
         ];
@@ -125,14 +125,14 @@ class FuzzyMamdaniService
             [min($u['parobaya'], $b['overweight'], $a['sedang']),                       'waspada'],
             [min($b['normal'],   $r['rentan'],     $g['sedang']),                       'waspada'],
             [min($u['muda'],     $r['rentan'],     $g['sedang'],  $a['sedang']),        'waspada'],
-            [min($b['overweight'],$r['aman'],      $g['sedang'],  $a['sedang']),        'waspada'],
+            [min($b['overweight'], $r['aman'],      $g['sedang'],  $a['sedang']),        'waspada'],
             [min($u['parobaya'], $b['normal'],     $r['rentan'],  $l['kadang_kadang']), 'waspada'],
             [min($a['pasif'],    $b['normal'],     $g['ringan'],  $r['aman']),          'waspada'],
             [min($u['muda'],     $b['obesitas'],   $g['ringan'],  $r['aman']),          'waspada'],
 
             [min($u['lansia'],   $b['normal'],     $r['rentan'],  $g['sedang']),        'tinggi'],
             [min($u['parobaya'], $b['obesitas'],   $g['sedang']),                       'tinggi'],
-            [min($b['overweight'],$r['risiko_tinggi'], $g['sedang']),                   'tinggi'],
+            [min($b['overweight'], $r['risiko_tinggi'], $g['sedang']),                   'tinggi'],
             [min($u['lansia'],   $b['overweight'], $a['pasif'],   $r['rentan']),        'tinggi'],
             [min($g['berat'],    $b['overweight'], $r['rentan']),                       'tinggi'],
             [min($u['parobaya'], $r['risiko_tinggi'], $g['berat'], $a['pasif']),        'tinggi'],
@@ -145,7 +145,7 @@ class FuzzyMamdaniService
             [min($b['obesitas'], $g['berat'],      $a['pasif'],   $r['risiko_tinggi']), 'sangat_tinggi'],
             [min($u['lansia'],   $r['risiko_tinggi'], $a['pasif'], $l['sering']),       'sangat_tinggi'],
             [min($g['berat'],    $l['sering'],     $b['obesitas'], $a['pasif']),        'sangat_tinggi'],
-            
+
             // ── ATURAN TAMBAHAN UMUM (Mencegah Output 0 jika kombinasi aneh dimasukkan) ──
             [min($g['berat'], $b['obesitas']), 'sangat_tinggi'],
             [min($g['berat'], $r['risiko_tinggi']), 'sangat_tinggi'],
@@ -157,6 +157,10 @@ class FuzzyMamdaniService
             [min($g['ringan'], $r['risiko_tinggi']), 'waspada'],
             [min($g['ringan'], $b['normal']), 'rendah'],
             [min($g['ringan'], $b['kurus']), 'rendah'],
+            [min($u['lansia'],  $g['berat'], $l['sering'], $a['pasif']),  'sangat_tinggi'],
+            [min($u['lansia'],  $g['berat'], $l['sering']),                'sangat_tinggi'],
+            [min($g['berat'],   $l['sering'], $a['pasif']),                'sangat_tinggi'],
+
         ];
 
         $agg   = ['rendah' => 0.0, 'waspada' => 0.0, 'tinggi' => 0.0, 'sangat_tinggi' => 0.0];
@@ -185,8 +189,8 @@ class FuzzyMamdaniService
             $x  = $i / 2.0; // 0..100 step 0.5
             $mu = max(
                 min($agg['rendah'],        $this->trapMF($x,  0,  0, 15, 30)),
-                min($agg['waspada'],       $this->triMF ($x, 25, 45, 60)),
-                min($agg['tinggi'],        $this->triMF ($x, 55, 70, 85)),
+                min($agg['waspada'],       $this->triMF($x, 25, 45, 60)),
+                min($agg['tinggi'],        $this->triMF($x, 55, 70, 85)),
                 min($agg['sangat_tinggi'], $this->trapMF($x, 80, 90, 100, 100))
             );
             $num += $x * $mu;
@@ -248,7 +252,7 @@ class FuzzyMamdaniService
 
         $usia     = max(1,   min(100, $usia));
         $riwayat  = max(0,   min(10,  $riwayat));
-        $aktivitas= max(0,   min(7,   $aktivitas));
+        $aktivitas = max(0,   min(7,   $aktivitas));
 
         $mf          = $this->fuzzify($usia, $bmi, $g3p, $gLuka, $riwayat, $aktivitas);
         $inferResult = $this->inferensi($mf);
